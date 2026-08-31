@@ -372,6 +372,7 @@ elif st.session_state.etapa == "Vídeo de Apoio":
     
     # Vídeo embutido
     st.video("https://www.youtube.com/watch?v=8mG5bJz82S0")
+    st.markdown("🔗 **[CLIQUE AQUI PARA ASSISTIR DIRETAMENTE NO YOUTUBE](https://www.youtube.com/watch?v=8mG5bJz82S0)** (caso o player integrado esteja bloqueado ou indisponível na rede da escola).")
     
     # Alternativa de leitura caso o vídeo esteja bloqueado ou indisponível
     st.markdown("---")
