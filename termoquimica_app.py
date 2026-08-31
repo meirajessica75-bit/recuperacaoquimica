@@ -367,18 +367,82 @@ elif st.session_state.etapa == "Vídeo de Apoio":
     st.subheader("Resumo prático do Brasil Escola com Professor Choven")
     
     st.write("""
-    Antes de ir para as atividades, assista ao vídeo abaixo. Ele ajudará você a revisar os principais tópicos:
-    * **Entalpia (H):** Quantidade de calor contida em um sistema.
-    * **Variação de Entalpia (ΔH):** Calculada por \\( \\Delta H = H_{Produtos} - H_{Reagentes} \\).
-    * **Reações Exotérmicas (ΔH < 0):** Liberam calor para o meio (esquentam o frasco).
-    * **Reações Endotérmicas (ΔH > 0):** Absorvem calor do meio (esfriam o frasco).
-    * **Lei de Hess:** O caminho da reação não altera a variação final de energia térmica!
+    Antes de ir para as atividades, assista ao vídeo abaixo para revisar os conceitos. 
     """)
     
     # Vídeo embutido
     st.video("https://www.youtube.com/watch?v=8mG5bJz82S0")
     
+    # Alternativa de leitura caso o vídeo esteja bloqueado ou indisponível
     st.markdown("---")
+    st.subheader("⚠️ Não consegue carregar o vídeo na rede da escola?")
+    st.warning("Muitas redes escolares possuem filtros rígidos que bloqueiam o YouTube. Se esse for o seu caso, não se preocupe! Você pode ler o **Resumo Interativo da Aula** expandindo a seção abaixo para ter acesso a todo o conteúdo cobrado no quiz:")
+    
+    with st.expander("📖 Ler o Resumo Completo da Aula (Professor Choven)"):
+        st.markdown("""
+        ### 🧪 Resumo Geral da Termoquímica
+        
+        A **Termoquímica** é a parte da ciência (e da química) que estuda o **calor envolvido em processos e reações químicas**. 
+        Como nem sempre temos aparelhos em laboratório para medir o calor de forma direta, os cientistas criaram tabelas e valores padrão de calor para cada reação. A partir disso, conseguimos calcular a energia térmica envolvida comparando o início e o fim do processo.
+        
+        ---
+        
+        ### 📊 1. O que é Entalpia (H) e Variação de Entalpia (ΔH)?
+        *   **Entalpia (H):** É a quantidade de calor contida em um sistema químico.
+        *   **Variação de Entalpia (ΔH):** É a diferença entre o calor final (produtos) e o calor inicial (reagentes):
+            $$\\Delta H = H_{Produtos} - H_{Reagentes}$$
+            
+        #### Fatores que alteram o valor de ΔH:
+        1.  **Estado físico** dos reagentes e produtos (por exemplo, a formação de água sólida tem $\\Delta H$ diferente da água gasosa).
+        2.  **Estado alotrópico** das substâncias simples envolvidas.
+        3.  **Temperatura** em que o processo ocorre.
+        4.  **Concentração** (quantidade de reagentes e produtos consumidos/formados).
+        
+        ---
+        
+        ### 🔥 2. Classificação dos Processos Térmicos
+        
+        *   **Processos Exotérmicos (Liberam Calor):**
+            *   "Solem" calor para fora do sistema (esquentam o frasco/meio ambiente).
+            *   A entalpia final dos produtos é **menor** que a dos reagentes ($H_{Produtos} < H_{Reagentes}$).
+            *   Portanto, a variação de entalpia é negativa: **$\\Delta H < 0$**.
+            *   *Nas Equações Químicas:* O calor aparece somado aos **produtos** (ex: $A \\rightarrow B + \\text{Calor}$).
+            
+        *   **Processos Endotérmicos (Absorvem Calor):**
+            *   "Puxam" calor do meio para dentro do sistema (esfriam o frasco/meio ambiente).
+            *   A entalpia final dos produtos é **maior** que a dos reagentes ($H_{Produtos} > H_{Reagentes}$).
+            *   Portanto, a variação de entalpia é positiva: **$\\Delta H > 0$**.
+            *   *Nas Equações Químicas:* O calor aparece somado aos **reagentes** (ex: $A + \\text{Calor} \\rightarrow B$).
+            
+        #### 📈 Elementos de um Gráfico Termoquímico:
+        *   **Energia de Ativação (Ea):** O "salto energético" inicial necessário para que a reação comece a acontecer.
+        *   **Complexo Ativado:** O ponto máximo de energia (pico do gráfico) onde os reagentes começam a se transformar em produtos.
+        
+        ---
+        
+        ### 🔬 3. Os Três Principais Calores de Reação
+        1.  **Calor de Formação:** Energia liberada ou absorvida na formação de 1 mol de uma substância a partir de substâncias simples no estado padrão (a 25 °C, 1 atm, e no estado alotrópico mais estável).
+        2.  **Calor de Combustão:** Energia liberada na queima de 1 mol de substância a 25 °C e 1 atm. *Lembre-se: toda combustão libera energia (exotérmica)!*
+        3.  **Calor de Ligação:** Energia envolvida para **romper** 1 mol de ligações químicas de uma substância no estado gasoso a 25 °C e 1 atm. Para quebrar uma ligação, o sistema precisa absorver energia (processo endotérmico).
+        
+        ---
+        
+        ### 🛍️ 4. A Lei de Hess e a Analogia do Shopping
+        A **Lei de Hess** afirma que a variação de entalpia total de um processo depende apenas do **estado inicial** e do **estado final**, não importando o caminho que a reação faz.
+        
+        #### 👩‍❤️‍👨 A Divertida Analogia do Professor Choven:
+        > Imagine que um homem e uma mulher recebem R$ 100 cada um na porta de um shopping para comprar exatamente a mesma calça na mesma loja.
+        > *   **O Homem:** Vai direto à loja, compra a calça sem experimentar e sai do shopping. (Caminho curto e direto)
+        > *   **A Mulher:** Sobe todos os andares, anda pelo shopping inteiro, olha todas as vitrines e finalmente vai à loja, compra a calça e sai. (Caminho longo com várias etapas intermediárias)
+        > 
+        > Ao final, ambos começaram com R$ 100 (Estado Inicial) e terminaram com a mesma calça comprada e R$ 0 no bolso (Estado Final). O gasto de dinheiro total foi exatamente o mesmo, independentemente se um foi direto ou se o outro deu voltas pelo shopping inteiro! 
+        > 
+        > Na química é igual: se os reagentes (início) e produtos (fim) forem os mesmos, o **$\\Delta H$ total gasto ou liberado será o mesmo**, seja a reação em uma única etapa ou em várias!
+        
+        #### 🔢 Regras para calcular a Lei de Hess:
+        *   Se você **inverter** uma reação intermediária, deve **inverter o sinal do $\\Delta H$** (positivo vira negativo e vice-versa).
+        *   Se você **multiplicar** ou dividir uma equação, deve **multiplicar** ou dividir o valor do $\\Delta H$ pelo mesmo número.
+        """)
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("⬅️ Voltar"):
