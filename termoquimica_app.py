@@ -184,7 +184,7 @@ def inicializar_quiz():
             "correta": nova_correta,
             "referencia": q["referencia"]
         })
-    st.session_state.questoes_sorteadas = questao_preparadas
+    st.session_state.questoes_sorteadas = questoes_preparadas
     st.session_state.respostas_estudante = {}
     st.session_state.aluno_submeteu = False
 
