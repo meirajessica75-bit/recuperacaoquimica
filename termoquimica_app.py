@@ -154,27 +154,31 @@ if "questoes_sorteadas" not in st.session_state:
     st.session_state.questoes_sorteadas = []
 if "respostas_estudante" not in st.session_state:
     st.session_state.respostas_estudante = {}
-if "tentativas" not in st.session_state:
-    st.session_state.tentativas = 0
-if "aluno_submeteu" not in st.session_state:
-    st.session_state.aluno_submeteu = False
+if "finalizado" not in st.session_state:
+    st.session_state.finalizado = False
+if "nota_final" not in st.session_state:
+    st.session_state.nota_final = 0.0
+if "acertos" not in st.session_state:
+    st.session_state.acertos = 0
+if "detalhes_gabarito" not in st.session_state:
+    st.session_state.detalhes_gabarito = []
+
+# Se o estudante já finalizou a prova, ele fica permanentemente travado na tela do Quiz Corrigido
+if st.session_state.finalizado:
+    st.session_state.etapa = "Quiz Corrigido"
 
 # Função para sortear questões e embaralhar alternativas (evitando cópia)
 def inicializar_quiz():
-    # Sorteia 5 questões únicas das 10 disponíveis
     questoes = random.sample(QUESTOES_BANCO, 5)
     questoes_preparadas = []
     
     for q in questoes:
-        # Copiar opções para não alterar a lista original
         opcoes_originais = list(q["opcoes"])
         correta_original = opcoes_originais[q["correta"]]
         
-        # Embaralhar as alternativas
         opcoes_embaralhadas = list(opcoes_originais)
         random.shuffle(opcoes_embaralhadas)
         
-        # Encontrar o novo índice da alternativa correta
         nova_correta = opcoes_embaralhadas.index(correta_original)
         
         questoes_preparadas.append({
@@ -186,30 +190,26 @@ def inicializar_quiz():
         })
     st.session_state.questoes_sorteadas = questoes_preparadas
     st.session_state.respostas_estudante = {}
-    st.session_state.aluno_submeteu = False
+    st.session_state.finalizado = False
 
 # Função para plotar o diagrama de entalpia dinamicamente
 def plotar_diagrama(tipo_reacao, nome_reacao):
     fig, ax = plt.subplots(figsize=(6, 4))
     
-    # Definir coordenadas para desenhar a curva de entalpia
-    # Reagentes -> Complexo Ativado (pico) -> Produtos
     if tipo_reacao == "Exotérmica":
         y_reag = 80
         y_pico = 120
         y_prod = 30
-        cor_curva = "#d9534f"  # Vermelho para exotérmica
+        cor_curva = "#d9534f"  # Vermelho
         cor_seta = "#c9302c"
     else:  # Endotérmica
         y_reag = 30
         y_pico = 100
         y_prod = 80
-        cor_curva = "#0275d8"  # Azul para endotérmica
+        cor_curva = "#0275d8"  # Azul
         cor_seta = "#025aa5"
         
     x = np.linspace(0, 10, 100)
-    # Curva suave ligando Reagentes, Pico (Complexo Ativado) e Produtos
-    # Usando polinômio simples para desenhar a curva
     y = np.zeros_like(x)
     for i, xi in enumerate(x):
         if xi < 3:
@@ -217,43 +217,32 @@ def plotar_diagrama(tipo_reacao, nome_reacao):
         elif xi > 7:
             y[i] = y_prod
         else:
-            # Curva de transição (senoidal suave) para o pico do complexo ativado
-            t = (xi - 3) / 4  # Vai de 0 a 1
-            # Forma de parábola invertida para o pico que começa em y_reag, vai a y_pico no meio, e termina em y_prod
+            t = (xi - 3) / 4
             base = y_reag + (y_prod - y_reag) * t
             pico = 4 * (y_pico - max(y_reag, y_prod)) * t * (1 - t)
             y[i] = base + pico
 
-    # Plotar a curva
     ax.plot(x, y, color=cor_curva, linewidth=3, label="Caminho da Reação")
-    
-    # Linhas pontilhadas horizontais para reagentes e produtos
     ax.axhline(y=y_reag, xmin=0.05, xmax=0.3, color="gray", linestyle="--")
     ax.axhline(y=y_prod, xmin=0.7, xmax=0.95, color="gray", linestyle="--")
     
-    # Rótulos dos patamares
     ax.text(0.5, y_reag + 3, "Reagentes", fontsize=10, fontweight="bold", color="#333333")
     ax.text(7.5, y_prod + 3, "Produtos", fontsize=10, fontweight="bold", color="#333333")
     ax.text(5, y_pico + 3, "Complexo Ativado", fontsize=9, fontstyle="italic", color="#555555", ha="center")
     
-    # Adicionar seta de Delta H (Variação de Entalpia)
     if tipo_reacao == "Exotérmica":
-        # Seta apontando para baixo
         ax.annotate("", xy=(8.5, y_prod), xytext=(8.5, y_reag),
                     arrowprops=dict(facecolor=cor_seta, edgecolor=cor_seta, shrink=0.05, width=2, headwidth=8))
         ax.text(8.8, (y_reag + y_prod)/2, "ΔH < 0\n(Libera calor)", fontsize=10, fontweight="bold", color=cor_seta, va="center")
     else:
-        # Seta apontando para cima
         ax.annotate("", xy=(8.5, y_prod), xytext=(8.5, y_reag),
                     arrowprops=dict(facecolor=cor_seta, edgecolor=cor_seta, shrink=0.05, width=2, headwidth=8))
         ax.text(8.8, (y_reag + y_prod)/2, "ΔH > 0\n(Absorve calor)", fontsize=10, fontweight="bold", color=cor_seta, va="center")
         
-    # Seta da Energia de Ativação (Eat)
     ax.annotate("", xy=(5, y_pico), xytext=(5, y_reag),
                 arrowprops=dict(arrowstyle="<->", color="purple", lw=1.5))
     ax.text(4.8, (y_pico + y_reag)/2, "Ea", color="purple", fontsize=10, fontweight="bold", ha="right")
 
-    # Configurações do gráfico
     ax.set_title(f"Diagrama de Entalpia: {nome_reacao}", fontsize=12, fontweight="bold", pad=15)
     ax.set_xlabel("Caminho da Reação →", fontsize=10)
     ax.set_ylabel("Entalpia (H) →", fontsize=10)
@@ -261,7 +250,6 @@ def plotar_diagrama(tipo_reacao, nome_reacao):
     ax.set_xticks([])
     ax.set_yticks([])
     
-    # Remover bordas desnecessárias
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.spines['left'].set_color('#cccccc')
@@ -283,14 +271,20 @@ with st.sidebar:
         st.write(f"**Série/Ano:** {st.session_state.ano} - {st.session_state.serie}")
         st.write("---")
         
-    st.subheader("🗺️ Etapas")
-    etapas = ["Identificação", "Vídeo de Apoio", "Simulador Prático", "Quiz Preventivo", "Enviar Atividade"]
-    
-    for e in etapas:
-        if st.session_state.etapa == e:
-            st.markdown(f"👉 **<span style='color:#0275d8'>{e}</span>**", unsafe_allow_html=True)
-        else:
-            st.markdown(f"<span style='color:#777777'>{e}</span>", unsafe_allow_html=True)
+    # Desabilitar navegação se o aluno já finalizou para evitar fraudes
+    if not st.session_state.finalizado:
+        st.subheader("🗺️ Etapas")
+        etapas = ["Identificação", "Vídeo de Apoio", "Simulador Prático", "Quiz Interativo"]
+        
+        for e in etapas:
+            if st.session_state.etapa == e:
+                st.markdown(f"👉 **<span style='color:#0275d8'>{e}</span>**", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<span style='color:#777777'>{e}</span>", unsafe_allow_html=True)
+    else:
+        st.subheader("🏁 Status da Prova")
+        st.success("✅ Respostas Enviadas!")
+        st.info("Você já concluiu sua tentativa e suas respostas foram salvas na planilha do professor.")
             
     st.write("---")
     
@@ -305,7 +299,6 @@ with st.sidebar:
                 df = pd.read_csv(CSV_PATH)
                 st.dataframe(df)
                 
-                # Botão de Download da planilha
                 csv = df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
                     label="📥 Baixar Planilha Excel (CSV)",
@@ -314,7 +307,6 @@ with st.sidebar:
                     mime="text/csv"
                 )
                 
-                # Botão de Reset
                 if st.button("🗑️ Limpar Banco de Dados"):
                     os.remove(CSV_PATH)
                     st.warning("Banco de dados removido! Atualize a página.")
@@ -332,13 +324,13 @@ if st.session_state.etapa == "Identificação":
     st.write("""
     Olá, estudante! Esta é a sua atividade interativa de recuperação de Química.
     Siga atentamente as etapas da barra lateral:
-    1. **Identifique-se** preenchendo os campos abaixo.
-    2. **Assista ao vídeo** de resumo explicativo.
-    3. **Interaja com o simulador** para fixar visualmente as reações.
-    4. **Responda ao questionário** final. Suas respostas serão enviadas diretamente para a planilha do professor!
+    1. **Identifique-se** preenchendo os seus dados abaixo.
+    2. **Assista ao vídeo** de apoio ou leia o resumo interativo.
+    3. **Interaja com o simulador** prático para fixar os conceitos.
+    4. **Responda ao quiz de 5 questões**. Suas respostas serão avaliadas e enviadas diretamente para o professor!
     """)
     
-    st.info("⚠️ Cada aluno receberá perguntas aleatórias e alternativas embaralhadas. Faça a sua própria atividade!")
+    st.info("⚠️ Atenção: Você só poderá responder ao questionário uma única vez. Certifique-se de colocar seu nome correto!")
 
     st.markdown("### Preencha seus dados de identificação:")
     nome = st.text_input("Nome Completo do Estudante", value=st.session_state.nome)
@@ -353,13 +345,33 @@ if st.session_state.etapa == "Identificação":
         if nome.strip() == "" or serie.strip() == "":
             st.error("Por favor, preencha o seu Nome Completo e a sua Série/Turma antes de avançar!")
         else:
-            st.session_state.nome = nome
-            st.session_state.ano = ano
-            st.session_state.serie = serie
-            # Inicializar o quiz sorteado exclusivamente para este aluno
-            inicializar_quiz()
-            st.session_state.etapa = "Vídeo de Apoio"
-            st.rerun()
+            # Validação anti-duplicação: verificar se este estudante já enviou respostas antes
+            nome_limpo = nome.strip().lower()
+            serie_limpo = serie.strip().lower()
+            ja_respondeu = False
+            nota_existente = 0.0
+            
+            if os.path.exists(CSV_PATH):
+                try:
+                    df_check = pd.read_csv(CSV_PATH)
+                    filtro = (df_check["Nome"].astype(str).str.strip().str.lower() == nome_limpo) & \
+                             (df_check["Série"].astype(str).str.strip().str.lower() == serie_limpo)
+                    duplicados = df_check[filtro]
+                    if not duplicados.empty:
+                        ja_respondeu = True
+                        nota_existente = duplicados.iloc[0]["Nota"]
+                except Exception:
+                    pass
+            
+            if ja_respondeu:
+                st.error(f"❌ Acesso Negado: O estudante **{nome}** da série **{serie}** já realizou esta atividade! Sua nota ({nota_existente:.1f}) já foi registrada anteriormente na planilha do professor.")
+            else:
+                st.session_state.nome = nome
+                st.session_state.ano = ano
+                st.session_state.serie = serie
+                inicializar_quiz()
+                st.session_state.etapa = "Vídeo de Apoio"
+                st.rerun()
 
 # --- ETAPA 2: VÍDEO DE APOIO ---
 elif st.session_state.etapa == "Vídeo de Apoio":
@@ -371,79 +383,64 @@ elif st.session_state.etapa == "Vídeo de Apoio":
     """)
     
     # Vídeo embutido
-    st.video("https://youtu.be/5aPH2E9UxhM?si=SH952-T550RETmS8")
-    st.markdown("🔗 **[CLIQUE AQUI PARA ASSISTIR DIRETAMENTE NO YOUTUBE](https://youtu.be/5aPH2E9UxhM?si=SH952-T550RETmS8)** (caso o player integrado esteja bloqueado ou indisponível na rede da escola).")
+    st.video("https://www.youtube.com/watch?v=8mG5bJz82S0")
+    st.markdown("🔗 **[CLIQUE AQUI PARA ASSISTIR DIRETAMENTE NO YOUTUBE](https://www.youtube.com/watch?v=8mG5bJz82S0)** (caso o player integrado esteja bloqueado ou indisponível na rede da escola).")
     
     # Alternativa de leitura caso o vídeo esteja bloqueado ou indisponível
     st.markdown("---")
     st.subheader("⚠️ Não consegue carregar o vídeo na rede da escola?")
     st.warning("Muitas redes escolares possuem filtros rígidos que bloqueiam o YouTube. Se esse for o seu caso, não se preocupe! Você pode ler o **Resumo Interativo da Aula** expandindo a seção abaixo para ter acesso a todo o conteúdo cobrado no quiz:")
     
-    with st.expander("📖 Ler o Resumo Completo da Aula (Professor Choven)"):
+    with st.expander("📖 Ler o Resumo Completo da Aula (Preparação para o Quiz)"):
         st.markdown("""
-        ### 🧪 Resumo Geral da Termoquímica
+        ### 1. O que é Termoquímica?
+        A **termoquímica** é a parte da ciência química que estuda as trocas de calor (energia térmica) que acompanham as reações químicas e as transformações físicas. [22]
+        Como não é possível medir a quantidade absoluta de calor dentro de um corpo, nós medimos a **Variação de Entalpia (ΔH)**, que é a diferença de energia térmica entre o estado final (produtos) e o estado inicial (reagentes). [23, 24]
         
-        A **Termoquímica** é a parte da ciência (e da química) que estuda o **calor envolvido em processos e reações químicas**. 
-        Como nem sempre temos aparelhos em laboratório para medir o calor de forma direta, os cientistas criaram tabelas e valores padrão de calor para cada reação. A partir disso, conseguimos calcular a energia térmica envolvida comparando o início e o fim do processo.
+        **Fórmula da Variação de Entalpia:**
+        $$ \\Delta H = H_{Produtos} - H_{Reagentes} $$ [24]
         
         ---
         
-        ### 📊 1. O que é Entalpia (H) e Variação de Entalpia (ΔH)?
-        *   **Entalpia (H):** É a quantidade de calor contida em um sistema químico.
-        *   **Variação de Entalpia (ΔH):** É a diferença entre o calor final (produtos) e o calor inicial (reagentes):
-            $$\\Delta H = H_{Produtos} - H_{Reagentes}$$
+        ### 2. Processos Exotérmicos vs. Endotérmicos
+        As transformações químicas e físicas podem ser classificadas em dois grupos quanto à energia térmica: [25]
+        
+        *   **Processos Exotérmicos (ΔH < 0):** São transformações que **liberam calor** para o ambiente externo. [25, 27]
+            *   *Gráfico:* A energia dos produtos é **menor** que a dos reagentes (linha cai). [26, 27]
+            *   *Sinal:* O ΔH é sempre **negativo**. [27]
+            *   *Sensação:* O recipiente esquenta.
+            *   *Exemplos:* Queima da gasolina nos motores de automóveis. [37, 40]
+        *   **Processos Endotérmicos (ΔH > 0):** São transformações que **absorvem calor** do ambiente externo. [25, 28]
+            *   *Gráfico:* A energia dos produtos é **maior** que a dos reagentes (linha sobe). [28]
+            *   *Sinal:* O ΔH é sempre **positivo**. [28]
+            *   *Sensação:* O recipiente esfria (sensação de frio). [40]
+            *   *Exemplos:* Resfriamento do Saco de Gelo Instantâneo de Nitrato de Amônio (NH₄NO₃) e evaporação da água no filtro de barro. [39, 40]
             
-        #### Fatores que alteram o valor de ΔH:
-        1.  **Estado físico** dos reagentes e produtos (por exemplo, a formação de água sólida tem $\\Delta H$ diferente da água gasosa).
-        2.  **Estado alotrópico** das substâncias simples envolvidas.
-        3.  **Temperatura** em que o processo ocorre.
-        4.  **Concentração** (quantidade de reagentes e produtos consumidos/formados).
+        ---
+        
+        ### 3. Fatores que Alteram a Variação de Entalpia (ΔH)
+        A variação de energia de uma reação pode mudar de acordo com quatro fatores fundamentais destacados pelo professor: [24, 25]
+        1.  **Estado Físico:** A água sólida, líquida e gasosa possuem entalpias de formação diferentes. [25]
+        2.  **Estado Alotrópico:** Formas alotrópicas diferentes (como carbono grafite e diamante) afetam o calor envolvido. [25]
+        3.  **Temperatura:** Deve ser avaliada dentro de uma faixa ideal controlada. [25]
+        4.  **Concentração / Quantidade de Matéria:** A energia é uma propriedade extensiva (depende da quantidade de moléculas que reagem). [25, 54]
         
         ---
         
-        ### 🔥 2. Classificação dos Processos Térmicos
+        ### 4. A Lei de Hess e a divertida analogia do Shopping
+        A **Lei de Hess** afirma que a variação de entalpia (ΔH) de um processo depende apenas do **estado inicial** e do **estado final** da reação, não importando os caminhos intermediários que a reação faz para chegar até lá! [31, 33]
         
-        *   **Processos Exotérmicos (Liberam Calor):**
-            *   "Solem" calor para fora do sistema (esquentam o frasco/meio ambiente).
-            *   A entalpia final dos produtos é **menor** que a dos reagentes ($H_{Produtos} < H_{Reagentes}$).
-            *   Portanto, a variação de entalpia é negativa: **$\\Delta H < 0$**.
-            *   *Nas Equações Químicas:* O calor aparece somado aos **produtos** (ex: $A \\rightarrow B + \\text{Calor}$).
+        *   **Analogia do Professor:** Imagine que um homem e uma mulher entram em um shopping para comprar a mesma calça na mesma loja, cada um com R$ 100. [32]
+            *   A **mulher** entra, anda por todos os andares do shopping, olha todas as lojas de roupas possíveis antes de finalmente comprar a calça. [32, 33]
+            *   O **homem** entra direto pelo caminho mais rápido, compra a calça sem experimentar e sai logo em seguida. [32, 33]
+            *   *Resultado:* Ambos começaram com R$ 100 (estado inicial) e terminaram com a calça comprada e sem dinheiro (estado final). O caminho de cada um foi diferente, mas a **variação de energia e dinheiro final foi exatamente a mesma!** [33]
             
-        *   **Processos Endotérmicos (Absorvem Calor):**
-            *   "Puxam" calor do meio para dentro do sistema (esfriam o frasco/meio ambiente).
-            *   A entalpia final dos produtos é **maior** que a dos reagentes ($H_{Produtos} > H_{Reagentes}$).
-            *   Portanto, a variação de entalpia é positiva: **$\\Delta H > 0$**.
-            *   *Nas Equações Químicas:* O calor aparece somado aos **reagentes** (ex: $A + \\text{Calor} \\rightarrow B$).
-            
-        #### 📈 Elementos de um Gráfico Termoquímico:
-        *   **Energia de Ativação (Ea):** O "salto energético" inicial necessário para que a reação comece a acontecer.
-        *   **Complexo Ativado:** O ponto máximo de energia (pico do gráfico) onde os reagentes começam a se transformar em produtos.
-        
-        ---
-        
-        ### 🔬 3. Os Três Principais Calores de Reação
-        1.  **Calor de Formação:** Energia liberada ou absorvida na formação de 1 mol de uma substância a partir de substâncias simples no estado padrão (a 25 °C, 1 atm, e no estado alotrópico mais estável).
-        2.  **Calor de Combustão:** Energia liberada na queima de 1 mol de substância a 25 °C e 1 atm. *Lembre-se: toda combustão libera energia (exotérmica)!*
-        3.  **Calor de Ligação:** Energia envolvida para **romper** 1 mol de ligações químicas de uma substância no estado gasoso a 25 °C e 1 atm. Para quebrar uma ligação, o sistema precisa absorver energia (processo endotérmico).
-        
-        ---
-        
-        ### 🛍️ 4. A Lei de Hess e a Analogia do Shopping
-        A **Lei de Hess** afirma que a variação de entalpia total de um processo depende apenas do **estado inicial** e do **estado final**, não importando o caminho que a reação faz.
-        
-        #### 👩‍❤️‍👨 A Divertida Analogia do Professor Choven:
-        > Imagine que um homem e uma mulher recebem R$ 100 cada um na porta de um shopping para comprar exatamente a mesma calça na mesma loja.
-        > *   **O Homem:** Vai direto à loja, compra a calça sem experimentar e sai do shopping. (Caminho curto e direto)
-        > *   **A Mulher:** Sobe todos os andares, anda pelo shopping inteiro, olha todas as vitrines e finalmente vai à loja, compra a calça e sai. (Caminho longo com várias etapas intermediárias)
-        > 
-        > Ao final, ambos começaram com R$ 100 (Estado Inicial) e terminaram com a mesma calça comprada e R$ 0 no bolso (Estado Final). O gasto de dinheiro total foi exatamente o mesmo, independentemente se um foi direto ou se o outro deu voltas pelo shopping inteiro! 
-        > 
-        > Na química é igual: se os reagentes (início) e produtos (fim) forem os mesmos, o **$\\Delta H$ total gasto ou liberado será o mesmo**, seja a reação em uma única etapa ou em várias!
-        
-        #### 🔢 Regras para calcular a Lei de Hess:
-        *   Se você **inverter** uma reação intermediária, deve **inverter o sinal do $\\Delta H$** (positivo vira negativo e vice-versa).
-        *   Se você **multiplicar** ou dividir uma equação, deve **multiplicar** ou dividir o valor do $\\Delta H$ pelo mesmo número.
+        *   **Regras da Lei de Hess:** [34]
+            *   Se você **inverter** uma reação química, você deve **inverter o sinal** do seu ΔH (ex: de negativo para positivo). [34]
+            *   Se você **multiplicar ou dividir** os coeficientes de uma reação, você deve **multiplicar ou dividir** o valor de ΔH pelo mesmo número. [34]
         """)
+        
+    st.markdown("---")
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("⬅️ Voltar"):
@@ -464,7 +461,6 @@ elif st.session_state.etapa == "Simulador Prático":
     **Simular Processo** para ver o termômetro virtual se mover e o gráfico de entalpia correspondente ser desenhado!
     """)
     
-    # Escolha do processo
     processo = st.selectbox(
         "Selecione um processo do livro para simular:",
         [
@@ -495,10 +491,7 @@ elif st.session_state.etapa == "Simulador Prático":
         delta_h_val = "-5461 kJ/mol"
         reacao_quimica = "C₈H₁₈(l) + 25/2 O₂(g) → 8 CO₂(g) + 9 H₂O(l) + Calor"
         descricao = """
-        🔥 **Motor do Carro e Combustão (Pág. 37, 40):** A queima do combustível libera uma imensa quantidade de calor para o sistema. 
-        Como é uma reação fortemente exotérmica, o motor atinge temperaturas extremas. O sistema de arrefecimento (com água e aditivos) 
-        serve especificamente para absorver esse calor liberado e evitar que as peças de metal do motor sofram fusão ou superaquecimento!
-        """
+        🔥 **Motor do Carro e Combustão (Pág. 37, 40):** A queima do combustível libera uma imensa quantidade de calor para o sistema. \n        Como é uma reação fortemente exotérmica, o motor atinge temperaturas extremas. O sistema de arrefecimento (com água e aditivos) \n        serve especificamente para absorver esse calor liberado e evitar que as peças de metal do motor sofram fusão ou superaquecimento!\n        """
     elif processo == "Evaporação da Água no Filtro de Barro":
         nome_reacao = "Evaporação de H₂O no Filtro de Barro"
         tipo_reacao = "Endotérmica"
@@ -511,7 +504,7 @@ elif st.session_state.etapa == "Simulador Prático":
         Ao passar para o estado gasoso (evaporação), ela necessita absorver calor. Essa energia térmica é retirada da própria água que ficou 
         no interior do filtro, resfriando-a e mantendo-a sempre fresca! É um processo de refrigeração natural e endotérmico.
         """
-    else:  # CaCl2 em Água
+    else: # CaCl2 em Água
         nome_reacao = "Dissolução do Cloreto de Cálcio (CaCl₂)"
         tipo_reacao = "Endotérmica"
         temp_inicial = 25
@@ -524,7 +517,6 @@ elif st.session_state.etapa == "Simulador Prático":
         processo endotérmico que causa um resfriamento perceptível ao toque no béquer.
         """
 
-    # Layout de colunas para o simulador
     col1, col2 = st.columns([1.2, 1.8])
     
     with col1:
@@ -533,23 +525,20 @@ elif st.session_state.etapa == "Simulador Prático":
         st.markdown(f"**Variação de Entalpia:** `{delta_h_val}`")
         
         st.markdown("### Termômetro Virtual")
-        # Visualizar temperatura mudando
         st.write(f"🌡️ **Temperatura Inicial:** {temp_inicial} °C")
         
-        # Simular efeito dinâmico usando progress bar do Streamlit para representar a variação
+        progresso = st.slider("Acompanhar Progresso da Reação (Tempo)", 0, 100, 100)
+        
         if tipo_reacao == "Exotérmica":
-            progresso = st.slider("Acompanhar Progresso da Reação (Tempo)", 0, 100, 100)
             temp_atual = temp_inicial + (temp_final - temp_inicial) * (progresso / 100)
             st.metric("Temperatura do Sistema", f"{temp_atual:.1f} °C", f"+{temp_atual - temp_inicial:.1f} °C (AQUECEU)")
         else:
-            progresso = st.slider("Acompanhar Progresso da Reação (Tempo)", 0, 100, 100)
             temp_atual = temp_inicial - (temp_inicial - temp_final) * (progresso / 100)
             st.metric("Temperatura do Sistema", f"{temp_atual:.1f} °C", f"-{temp_inicial - temp_atual:.1f} °C (RESFRIOU)", delta_color="inverse")
             
         st.markdown(descricao)
         
     with col2:
-        # Gerar e mostrar o gráfico de entalpia com base na escolha
         fig_gr = plotar_diagrama(tipo_reacao, nome_reacao)
         st.pyplot(fig_gr)
         
@@ -561,26 +550,24 @@ elif st.session_state.etapa == "Simulador Prático":
             st.rerun()
     with col_v2:
         if st.button("Avançar para o Quiz de Recuperação ➡️"):
-            st.session_state.etapa = "Quiz Preventivo"
+            st.session_state.etapa = "Quiz Interativo"
             st.rerun()
 
-# --- ETAPA 4: QUIZ PREVENTIVO ---
-elif st.session_state.etapa == "Quiz Preventivo":
+# --- ETAPA 4: QUIZ INTERATIVO (AGORA INTEGRADO COM ENVIO AUTOMÁTICO E TRAVA) ---
+elif st.session_state.etapa == "Quiz Interativo":
     st.title("📝 Questionário de Recuperação")
-    st.subheader("Responda com atenção para registrar sua nota")
+    st.subheader("Responda com atenção e envie diretamente")
     st.write(f"Estudante: **{st.session_state.nome}** | Série: **{st.session_state.serie}**")
-    st.info("💡 As alternativas abaixo foram embaralhadas. Leia atentamente!")
+    st.info("💡 As alternativas abaixo foram embaralhadas pelo sistema para evitar cópias. Leia com atenção e responda. Ao clicar no botão abaixo, suas respostas serão validadas e enviadas de forma definitiva.")
     
-    # Criar formulário para evitar múltiplos re-runs indesejados durante a seleção
+    # Criar formulário para o Quiz
     with st.form("quiz_form"):
         respostas_temporarias = {}
         
         for idx, q in enumerate(st.session_state.questoes_sorteadas):
             st.markdown(f"**Pergunta {idx + 1}:** {q['pergunta']}")
-            # Mostrar a referência no livro/vídeo para ajudar o estudante na recuperação
             st.caption(f"📍 Dica de estudo: conteúdo localizado em {q['referencia']}")
             
-            # Opções
             escolha = st.radio(
                 f"Selecione uma resposta para a Pergunta {idx + 1}:",
                 q["opcoes"],
@@ -590,9 +577,9 @@ elif st.session_state.etapa == "Quiz Preventivo":
             respostas_temporarias[q["id"]] = escolha
             st.markdown("<br>", unsafe_allow_html=True)
             
-        botao_enviar = st.form_submit_button("Validar Respostas 💾")
+        botao_validar_e_enviar = st.form_submit_button("Validar e Enviar Respostas ao Professor 🚀")
         
-        if botao_enviar:
+        if botao_validar_e_enviar:
             # Validar se todas foram respondidas
             todas_respondidas = True
             for q_id, resp in respostas_temporarias.items():
@@ -600,113 +587,92 @@ elif st.session_state.etapa == "Quiz Preventivo":
                     todas_respondidas = False
                     
             if not todas_respondidas:
-                st.error("Por favor, responda todas as 5 questões antes de validar!")
+                st.error("⚠️ Você precisa responder TODAS as 5 questões antes de enviar!")
             else:
-                st.session_state.respostas_estudante = respostas_temporarias
-                st.session_state.aluno_submeteu = True
-                st.success("Respostas salvas! Clique no botão de avançar abaixo para enviar os resultados ao professor.")
+                # 1. Processar notas e acertos imediatamente
+                acertos = 0
+                total_perguntas = len(st.session_state.questoes_sorteadas)
+                detalhes_gabarito = []
                 
-    st.markdown("---")
-    col_q1, col_q2 = st.columns(2)
-    with col_q1:
-        if st.button("⬅️ Voltar ao Simulador"):
-            st.session_state.etapa = "Simulador Prático"
-            st.rerun()
-    with col_q2:
-        if st.session_state.aluno_submeteu:
-            if st.button("Avançar para Envio ➡️"):
-                st.session_state.etapa = "Enviar Atividade"
+                for idx, q in enumerate(st.session_state.questoes_sorteadas):
+                    resp_aluno = respostas_temporarias.get(q["id"])
+                    idx_opcao_correta = q["correta"]
+                    texto_correto = q["opcoes"][idx_opcao_correta]
+                    
+                    foi_correto = (resp_aluno == texto_correto)
+                    if foi_correto:
+                        acertos += 1
+                        
+                    detalhes_gabarito.append({
+                        "num": idx + 1,
+                        "pergunta": q["pergunta"],
+                        "resposta_aluno": resp_aluno,
+                        "resposta_correta": texto_correto,
+                        "status": "✅ Correta" if foi_correto else "❌ Incorreta"
+                    })
+                    
+                nota_final = (acertos / total_perguntas) * 10.0
+                
+                # 2. Salvar na planilha imediatamente (Envio automático sem etapa extra)
+                linha_resposta = {
+                    "Data_Hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "Nome": st.session_state.nome,
+                    "Ano": st.session_state.ano,
+                    "Série": st.session_state.serie,
+                    "Nota": nota_final,
+                    "Acertos": acertos,
+                    "Q1": detalhes_gabarito[0]["status"],
+                    "Q2": detalhes_gabarito[1]["status"],
+                    "Q3": detalhes_gabarito[2]["status"],
+                    "Q4": detalhes_gabarito[3]["status"],
+                    "Q5": detalhes_gabarito[4]["status"],
+                }
+                
+                novo_registro = pd.DataFrame([linha_resposta])
+                
+                if os.path.exists(CSV_PATH):
+                    try:
+                        df_existente = pd.read_csv(CSV_PATH)
+                        df_final = pd.concat([df_existente, novo_registro], ignore_index=True)
+                    except Exception:
+                        df_final = novo_registro
+                else:
+                    df_final = novo_registro
+                    
+                df_final.to_csv(CSV_PATH, index=False, encoding='utf-8-sig')
+                
+                # 3. Salvar no Estado da Sessão para bloquear alterações adicionais
+                st.session_state.respostas_estudante = respostas_temporarias
+                st.session_state.nota_final = nota_final
+                st.session_state.acertos = acertos
+                st.session_state.detalhes_gabarito = detalhes_gabarito
+                st.session_state.finalizado = True
+                st.session_state.etapa = "Quiz Corrigido"
                 st.rerun()
-        else:
-            st.button("Avançar para Envio ➡️ (Responda o Quiz primeiro)", disabled=True)
 
-# --- ETAPA 5: ENVIAR ATIVIDADE (Registro de Notas) ---
-elif st.session_state.etapa == "Enviar Atividade":
-    st.title("💾 Envio da Atividade")
-    st.subheader("Confirme o envio dos seus dados para a planilha do professor")
+# --- TELA FINAL: APENAS VISUALIZAÇÃO DA NOTA E CORREÇÃO (BLOQUEADO) ---
+elif st.session_state.etapa == "Quiz Corrigido":
+    st.title("🏆 Resultado da Avaliação")
+    st.subheader("Sua atividade de recuperação foi finalizada!")
+    st.write(f"Estudante: **{st.session_state.nome}** | Série: **{st.session_state.serie}**")
     
-    # Calcular acertos
-    acertos = 0
-    total_perguntas = len(st.session_state.questoes_sorteadas)
-    detalhes_gabarito = []
+    st.success("✨ Respostas registradas e enviadas diretamente para a planilha do professor com sucesso!")
     
-    for idx, q in enumerate(st.session_state.questoes_sorteadas):
-        resp_aluno = st.session_state.respostas_estudante.get(q["id"])
-        idx_opcao_correta = q["correta"]
-        texto_correto = q["opcoes"][idx_opcao_correta]
-        
-        foi_correto = (resp_aluno == texto_correto)
-        if foi_correto:
-            acertos += 1
-            
-        detalhes_gabarito.append({
-            "num": idx + 1,
-            "pergunta": q["pergunta"],
-            "resposta_aluno": resp_aluno,
-            "resposta_correta": texto_correto,
-            "status": "✅ Correta" if foi_correto else "❌ Incorreta"
-        })
-        
-    nota_final = (acertos / total_perguntas) * 10.0
+    st.markdown("### Seu Desempenho:")
+    st.write(f"🎯 **Nota Final:** `{st.session_state.nota_final:.1f} / 10.0` ({st.session_state.acertos} acertos de 5)")
     
-    st.markdown("### Resumo da sua Atividade:")
-    st.write(f"👤 **Nome:** {st.session_state.nome}")
-    st.write(f"🏫 **Ano/Série:** {st.session_state.ano} - {st.session_state.serie}")
-    st.write(f"🎯 **Nota Final:** `{nota_final:.1f} / 10.0` ({acertos} acertos de 5)")
-    
-    if nota_final >= 6.0:
+    if st.session_state.nota_final >= 6.0:
         st.balloons()
-        st.success("Parabéns! Você alcançou a nota mínima de recuperação! 🎉")
+        st.success("Excelente! Você obteve a nota mínima para aprovação na recuperação! 🎉")
     else:
-        st.warning("Estude um pouco mais o simulador e o vídeo para a próxima tentativa! 💪")
+        st.warning("Estude um pouco mais os diagramas de entalpia e os tipos de reações termoquímicas! 💪")
         
-    st.info("👉 Clique no botão vermelho abaixo para salvar permanentemente a sua nota no banco de dados do professor.")
-    
-    # Botão para salvar na Planilha (CSV)
-    if st.button("✅ ENVIAR RESPOSTAS AO PROFESSOR"):
-        # Preparar dados para o DataFrame
-        linha_resposta = {
-            "Data_Hora": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "Nome": st.session_state.nome,
-            "Ano": st.session_state.ano,
-            "Série": st.session_state.serie,
-            "Nota": nota_final,
-            "Acertos": acertos,
-            "Q1": detalhes_gabarito[0]["status"],
-            "Q2": detalhes_gabarito[1]["status"],
-            "Q3": detalhes_gabarito[2]["status"],
-            "Q4": detalhes_gabarito[3]["status"],
-            "Q5": detalhes_gabarito[4]["status"],
-        }
-        
-        # Salvar em CSV de forma segura (append se já existe)
-        novo_registro = pd.DataFrame([linha_resposta])
-        
-        if os.path.exists(CSV_PATH):
-            df_existente = pd.read_csv(CSV_PATH)
-            df_final = pd.concat([df_existente, novo_registro], ignore_index=True)
-        else:
-            df_final = novo_registro
-            
-        df_final.to_csv(CSV_PATH, index=False, encoding='utf-8-sig')
-        
-        st.success("✨ Suas respostas foram salvas com sucesso na planilha do professor! Você já pode fechar esta aba.")
-        
-    st.markdown("### Histórico de Correção:")
-    for dg in detalhes_gabarito:
+    st.markdown("### Correção Detalhada da sua Prova:")
+    for dg in st.session_state.detalhes_gabarito:
         with st.expander(f"Questão {dg['num']}: {dg['status']}"):
             st.write(f"**Enunciado:** {dg['pergunta']}")
             st.write(f"**Sua Resposta:** {dg['resposta_aluno']}")
             if dg['status'] == "❌ Incorreta":
                 st.write(f"**Resposta Correta:** {dg['resposta_correta']}")
                 
-    st.markdown("---")
-    if st.button("🔄 Reiniciar Atividade (Outro Estudante)"):
-        # Resetar sessão do estudante
-        st.session_state.nome = ""
-        st.session_state.serie = ""
-        st.session_state.questoes_sorteadas = []
-        st.session_state.respostas_estudante = {}
-        st.session_state.aluno_submeteu = False
-        st.session_state.etapa = "Identificação"
-        st.rerun()
+    st.info("🔒 Esta página de correção é apenas para visualização. Suas notas e respostas já estão salvas na planilha do professor e não podem ser refeitas nesta sessão.")
